@@ -33,7 +33,36 @@ const sets={intention:["Marriage-minded relationship","Serious relationship","Ge
 Object.entries(sets).forEach(([name,items])=>{const box=document.querySelector('[data-name="'+name+'"]');items.forEach(item=>{const b=document.createElement("button");b.type="button";b.className="choice";b.textContent=item;b.onclick=()=>{box.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");b.dataset.selected="yes";localStorage.setItem("bf-"+name,item)};box.appendChild(b)})});
 const list=document.getElementById("stepList");labels.forEach((x,i)=>list.innerHTML+='<button data-index="'+i+'"><b>'+(i+1)+'</b>'+x+'</button>');
 function render(){document.querySelectorAll(".pane").forEach((x,i)=>x.classList.toggle("hidden",i!==step));document.querySelectorAll(".steps button").forEach((x,i)=>x.classList.toggle("active",i===step));document.getElementById("mobileStep").textContent="Step "+(step+1)+" of 7";document.getElementById("mobileTitle").textContent=labels[step];document.getElementById("progressBar").style.width=((step+1)/7*100)+"%";document.getElementById("nextBtn").textContent=step===6?"Submit application ♥":"Continue →";if(step===6){const f=new FormData(document.getElementById("bfForm"));reviewName.textContent=f.get("name")||"Your name";reviewDetails.textContent=(f.get("age")||"Age")+" · "+(f.get("location")||"Location")+" · "+(f.get("occupation")||"Occupation");reviewIntent.textContent=localStorage.getItem("bf-intention")||"Not answered";reviewFaith.textContent="Faith: "+(localStorage.getItem("bf-faith")||"Not answered")}}
-function openForm(){home.classList.add("hidden");application.classList.remove("hidden");render()}function goHome(){success.classList.add("hidden");application.classList.add("hidden");home.classList.remove("hidden");scrollTo(0,0)}function back(){if(step){step--;render()}else goHome()}function next(){if(step<6){step++;render();scrollTo(0,0)}else submitApp()}function submitApp(){if(!adult.checked){alert("Please confirm that you are at least 18.");return}const code="BF-"+new Date().getFullYear()+"-"+Math.floor(1000+Math.random()*9000);reference.textContent=code;localStorage.setItem("bf-reference",code);application.classList.add("hidden");success.classList.remove("hidden");scrollTo(0,0)}
+function openForm(){home.classList.add("hidden");application.classList.remove("hidden");render()}function goHome(){success.classList.add("hidden");application.classList.add("hidden");home.classList.remove("hidden");scrollTo(0,0)}function back(){if(step){step--;render()}else goHome()}function next(){if(step<6){step++;render();scrollTo(0,0)}else submitApp()}
+async function submitApp(){
+  if(!adult.checked){alert("Please confirm that you are at least 18.");return}
+  const form=document.getElementById("bfForm");
+  if(!form.reportValidity()) return;
+  const code="BF-"+new Date().getFullYear()+"-"+Math.floor(1000+Math.random()*9000);
+  const data=new FormData(form);
+  Object.keys(sets).forEach(name=>data.set(name,localStorage.getItem("bf-"+name)||"Not answered"));
+  data.set("application_reference",code);
+  const btn=document.getElementById("nextBtn");
+  const oldText=btn.textContent;
+  btn.disabled=true;btn.textContent="Submitting…";
+  try{
+    const response=await fetch("https://formspree.io/f/xdekgknp",{
+      method:"POST",
+      body:data,
+      headers:{"Accept":"application/json"}
+    });
+    if(!response.ok) throw new Error("Submission failed");
+    reference.textContent=code;
+    localStorage.setItem("bf-reference",code);
+    application.classList.add("hidden");
+    success.classList.remove("hidden");
+    scrollTo(0,0);
+  }catch(err){
+    alert("Your application could not be submitted. Please check your internet connection and try again.");
+  }finally{
+    btn.disabled=false;btn.textContent=oldText;
+  }
+}
 document.getElementById("bfForm").addEventListener("input",e=>{if(e.target.name)localStorage.setItem("bf-field-"+e.target.name,e.target.value)});document.querySelectorAll("#bfForm input,#bfForm textarea").forEach(el=>{const v=localStorage.getItem("bf-field-"+el.name);if(v)el.value=v});render();
 </script>
 </body></html>
